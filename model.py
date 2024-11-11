@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from functools import reduce
+from operator import __add__
 
 class ChannelAttentionModule(nn.Module):
     def __init__(self, channel, ratio=16):
@@ -45,11 +47,20 @@ class CBAM(nn.Module):
         # out = self.spatial_attention(out) * out
         return out
 
+class Conv2dSamePadding(nn.Conv2d):
+    def __init__(self,*args,**kwargs):
+        super(Conv2dSamePadding, self).__init__(*args, **kwargs)
+        self.zero_pad_2d = nn.ZeroPad2d(reduce(__add__,
+            [(k // 2 + (k - 2 * (k // 2)) - 1, k // 2) for k in self.kernel_size[::-1]]))
+
+    def forward(self, input):
+        return  self._conv_forward(self.zero_pad_2d(input), self.weight, self.bias)
+
 class Conv2DBlock(nn.Module):
     """ Conv + ReLU + BN"""
     def __init__(self, in_dim, out_dim, kernel_size, padding='same', bias=True, **kwargs):
         super(Conv2DBlock, self).__init__(**kwargs)
-        self.conv = nn.Conv2d(in_dim, out_dim, kernel_size=kernel_size, padding=padding, bias=bias)
+        self.conv = Conv2dSamePadding(in_dim, out_dim, kernel_size=kernel_size, bias=bias)
         self.bn = nn.BatchNorm2d(out_dim)
         self.relu = nn.ReLU()
     

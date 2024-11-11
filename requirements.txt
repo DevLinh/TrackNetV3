@@ -5,3 +5,4 @@ parse
 piexif
 matplotlib
 scipy
+numpy<2.0

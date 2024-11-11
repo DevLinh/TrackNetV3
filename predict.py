@@ -14,7 +14,7 @@ from utils import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--video_file', type=str)
-parser.add_argument('--model_file', type=str, default='TrackNetV2/model_best.pt')
+parser.add_argument('--model_file', type=str, default='exp/model_best.pt')
 parser.add_argument('--num_frame', type=int, default=3)
 parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--save_dir', type=str, default='pred_result')
@@ -60,6 +60,7 @@ f.write('Frame,Visibility,X,Y\n')
 # Cap configuration
 cap = cv2.VideoCapture(video_file)
 fps = int(cap.get(cv2.CAP_PROP_FPS))
+total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 success = True
@@ -68,8 +69,12 @@ num_final_frame = 0
 ratio = h / HEIGHT
 out = cv2.VideoWriter(out_video_file, fourcc, fps, (w, h))
 
+# Initialize tqdm progress bar
+progress_bar = tqdm(total=total_frames, desc="Processing Frames", unit="frame")
+
 while success:
-    print(f'Number of sampled frames: {frame_count}')
+    # print(f'Number of sampled frames: {frame_count}')
+    progress_bar.update(1)
     # Sample frames to form input sequence
     frame_queue = []
     for _ in range(num_frame*batch_size):
@@ -132,5 +137,7 @@ while success:
                 cv2.circle(img, (cx_pred, cy_pred), 5, (0, 0, 255), -1)
             out.write(img)
 
+progress_bar.close()
 out.release()
+cv2.destroyAllWindows()
 print('Done.')
